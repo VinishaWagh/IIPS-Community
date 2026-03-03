@@ -49,3 +49,11 @@ app.get("/api/protected", authenticateToken, (req, res)=> {
         user: req.user
     });
 });
+
+// Get User Profile
+const userRoutes = require("./routes/userRoutes.js");
+app.use("/api/users", userRoutes);
+
+// Create a new post
+const postRoutes = require("./routes/postRoutes.js");
+app.use("/api/posts", postRoutes); 

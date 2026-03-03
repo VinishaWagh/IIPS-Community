@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 
+// Generate jwt token (unique) for each user
 const authenticateToken = (req, res, next)=>{
     const authHeader = req.headers["authorization"];
 
