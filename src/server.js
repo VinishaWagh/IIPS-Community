@@ -50,10 +50,19 @@ app.get("/api/protected", authenticateToken, (req, res)=> {
     });
 });
 
-// Get User Profile
+// User Profile
 const userRoutes = require("./routes/userRoutes.js");
 app.use("/api/users", userRoutes);
 
-// Create a new post
+// Posts Operations
 const postRoutes = require("./routes/postRoutes.js");
 app.use("/api/posts", postRoutes); 
+
+
+// Comments Operations
+const commentRoutes = require("./routes/commentRoutes.js");
+app.use("/api", commentRoutes);
+
+// Like Operations
+const likeRoutes = require("./routes/likeRoutes");
+app.use("/api", likeRoutes);
