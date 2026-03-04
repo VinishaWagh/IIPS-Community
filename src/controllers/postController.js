@@ -22,11 +22,19 @@ exports.createPost = async(req, res)=>{
 // Get posts (Commnuity Feed)
 exports.getPosts = async(req, res)=>{
     try{
+        const userId = req.user.id;
         const posts = await pool.query(
-        `SELECT posts.id, posts.content, posts.created_at, users.name, users.role
+        `SELECT posts.id, posts.content, posts.created_at, users.name,
+        COUNT (DISTINCT likes.id) AS likes_count,
+        COUNT (DISTINCT comments.id) AS comments_count,
+        BOOL_OR(likes.user_id = $1) AS is_liked
          FROM posts
          JOIN users ON posts.user_id = users.id
-         ORDER BY posts.created_at DESC`
+         LEFT JOIN likes ON posts.id = likes.post_id
+         LEFT JOIN comments ON posts.id = comments.post_id
+         GROUP BY posts.id, users.name
+         ORDER BY posts.created_at DESC`,
+         [userId]
         );
 
         res.json(posts.rows);
