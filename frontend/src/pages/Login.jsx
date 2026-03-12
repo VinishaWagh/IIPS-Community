@@ -19,7 +19,7 @@ function Login() {
       });
 
       localStorage.setItem("token", res.data.token);
-      alert("Login successful");
+      navigate("/feed");
     } catch (error) {
       console.log(error.response?.data);
       alert("Login failed");
@@ -60,16 +60,13 @@ function Login() {
             .nav-logo{
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-weight: 800;
-            font-size: 15px;
-            letter-spacing: 2px;
-            color: #3d4a6b;
-            text-transform: uppercase;
             cursor: pointer;
             }
 
-            .nav-logo svg { color: #7b8fcf; }
+            .nav-logo img { 
+            width: 70px;
+            height: 50px;
+            }
 
             .nav-links{
             display: flex;
@@ -112,18 +109,6 @@ function Login() {
             align-items: center;
             justify-content: center;
             letter-spacing: 0.5px;
-            }
-
-            .nav-home-icon{
-            width: 32px;
-            height: 32px;
-            background: #3d4a6b;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            cursor: pointer;
             }
 
             .main{
@@ -332,16 +317,6 @@ function Login() {
             <a href="" className="nav-signup">
               Sign Up
             </a>
-            <div className="nav-home-icon">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-              </svg>
-            </div>
           </div>
         </nav>
 

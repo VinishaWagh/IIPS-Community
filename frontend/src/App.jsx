@@ -1,12 +1,10 @@
 import {BrowserRouter, Routes, Route} from "react-router-dom";
-import Login from "./pages/Login"
+import Login from "./pages/Login";
+import Feed from "./pages/Feed";
+import Signup from "./pages/Signup";
 
 function Home(){
   return <h2>Welcome to IIPS Community</h2>
-}
-
-function Signup(){
-  return <h2>Signup Page</h2>
 }
 
 function App(){
@@ -16,6 +14,7 @@ function App(){
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/feed" element={<Feed />} />
       </Routes>
     </BrowserRouter>
   );
