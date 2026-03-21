@@ -314,7 +314,7 @@ function Login() {
           </ul>
           {/* Nav Right */}
           <div className="nav-right">
-            <a href="" className="nav-signup">
+            <a href="/signup" className="nav-signup">
               Sign Up
             </a>
           </div>
