@@ -15,3 +15,18 @@ exports.getProfile = async(req, res)=>{
         res.status(500).json({error: error.message});
     }
 };
+
+// getting suggestions
+exports.getSuggestions = async (req, res) =>{
+    try{
+        const currentUserId = req.user.id;
+
+        const users = await pool.query(
+            "SELECT id, name, role FROM users WHERE id != $1 LIMIT 5", [currentUserId]
+        );
+
+        res.json(users.rows);
+    } catch(error){
+        res.status(500).json({error: error.message});
+    }
+};

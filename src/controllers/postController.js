@@ -112,3 +112,23 @@ exports.updatePosts = async(req, res)=>{
         return res.status(500).json({error: error.message});
     }
 };
+
+// get Trending Posts
+
+exports.getTrending = async (req, res) => {
+  try {
+    const trending = await pool.query(
+      `SELECT posts.id, posts.content, users.name,
+       COUNT(likes.id) AS likes_count
+       FROM posts
+       JOIN users ON posts.user_id = users.id
+       LEFT JOIN likes ON posts.id = likes.post_id
+       GROUP BY posts.id, users.name
+       ORDER BY likes_count DESC
+       LIMIT 5`
+    );
+    res.json(trending.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -42,6 +42,12 @@ function getInitials(name = "") {
   return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) || "??";
 }
 
+//Logout
+const handleLogout = () => {
+  localStorage.removeItem("token");
+  window.location.href = "/login";
+};
+
 /* ─────────────────────────────────────────────────
    POST CARD
    Schema from getPosts:
@@ -285,6 +291,16 @@ export default function Feed() {
       .finally(() => setLoadingPosts(false));
   }, []);
 
+
+  // Right Sidebar get suggestions, trending, upcoming and announcements
+
+  useEffect(() => {
+    API.get("/posts/trending").then(r => setTrending(r.data)).catch(console.error);
+    API.get("/users/suggestions").then(r => setSuggestions(r.data)).catch(console.error);
+    API.get("/events/upcoming").then(r => setEvents(r.data)).catch(console.error);
+    API.get("/announcements/latest").then(r => setAnnouncement(r.data)).catch(console.error);
+}, []);
+
   /* ── CREATE POST — POST /api/posts
      postController.createPost — body: { content }
      returns: { id, user_id, content, created_at }
@@ -461,7 +477,9 @@ export default function Feed() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </button>
-            <Avatar initials={userInitials} size={36} />
+            <button className="topbar-icon-btn" onClick={handleLogout}>
+              <Avatar initials={userInitials} size={36} />
+            </button>
           </div>
         </header>
 
@@ -548,7 +566,7 @@ export default function Feed() {
                 </svg>
                 Trending
               </div>
-              <p className="widget-empty">Build GET /api/posts/trending</p>
+              <p className="widget-empty"></p>
             </div>
 
             <div className="widget-card">
@@ -559,7 +577,7 @@ export default function Feed() {
                 </svg>
                 Suggested Connections
               </div>
-              <p className="widget-empty">Build GET /api/users/suggestions</p>
+              <p className="widget-empty"></p>
             </div>
 
             <div className="widget-card">
@@ -570,7 +588,7 @@ export default function Feed() {
                 </svg>
                 Upcoming Events
               </div>
-              <p className="widget-empty">Build GET /api/events/upcoming</p>
+              <p className="widget-empty"></p>
             </div>
           </aside>
 

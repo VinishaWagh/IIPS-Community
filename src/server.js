@@ -66,3 +66,6 @@ app.use("/api", commentRoutes);
 // Like Operations
 const likeRoutes = require("./routes/likeRoutes");
 app.use("/api", likeRoutes);
+
+// Event Operations
+app.use("/api/events", require("./routes/eventRoutes"));
