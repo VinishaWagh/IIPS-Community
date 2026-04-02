@@ -69,3 +69,6 @@ app.use("/api", likeRoutes);
 
 // Event Operations
 app.use("/api/events", require("./routes/eventRoutes"));
+
+// Announcements
+app.use("/api/announcements", require("./routes/announcementRoutes"));
