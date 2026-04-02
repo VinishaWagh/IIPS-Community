@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 import logo from "../assets/IIPS_Connect_logo.png";
 
@@ -7,13 +8,22 @@ import logo from "../assets/IIPS_Connect_logo.png";
 ───────────────────────────────────────────────── */
 function Avatar({ initials, size = 40, bg = "#1e3a5f" }) {
   return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: bg, color: "#fff",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontWeight: 800, fontSize: size * 0.35, flexShrink: 0,
-      fontFamily: "'Nunito', sans-serif",
-    }}>
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: bg,
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 800,
+        fontSize: size * 0.35,
+        flexShrink: 0,
+        fontFamily: "'Nunito', sans-serif",
+      }}
+    >
       {initials}
     </div>
   );
@@ -21,25 +31,37 @@ function Avatar({ initials, size = 40, bg = "#1e3a5f" }) {
 
 function Badge({ label }) {
   const map = {
-    faculty:  { bg: "#dbeafe", color: "#1d4ed8", text: "Faculty" },
-    alumni:   { bg: "#fef3c7", color: "#b45309", text: "Alumni"  },
-    student:  { bg: "#dcfce7", color: "#15803d", text: "Student" },
+    faculty: { bg: "#dbeafe", color: "#1d4ed8", text: "Faculty" },
+    alumni: { bg: "#fef3c7", color: "#b45309", text: "Alumni" },
+    student: { bg: "#dcfce7", color: "#15803d", text: "Student" },
   };
   const c = map[label?.toLowerCase()] || map.student;
   return (
-    <span style={{
-      background: c.bg, color: c.color,
-      fontSize: 11, fontWeight: 700,
-      padding: "2px 8px", borderRadius: 20,
-      fontFamily: "'Nunito', sans-serif",
-    }}>
+    <span
+      style={{
+        background: c.bg,
+        color: c.color,
+        fontSize: 11,
+        fontWeight: 700,
+        padding: "2px 8px",
+        borderRadius: 20,
+        fontFamily: "'Nunito', sans-serif",
+      }}
+    >
       {c.text}
     </span>
   );
 }
 
 function getInitials(name = "") {
-  return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) || "??";
+  return (
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "??"
+  );
 }
 
 //Logout
@@ -57,20 +79,23 @@ const handleLogout = () => {
 ───────────────────────────────────────────────── */
 function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments]         = useState([]);
-  const [commentText, setCommentText]   = useState("");
-  const [loadingCmts, setLoadingCmts]   = useState(false);
-  const [likesCount, setLikesCount]     = useState(Number(post.likes_count));
-  const [isLiked, setIsLiked]           = useState(post.is_liked);
-  const [editing, setEditing]           = useState(false);
-  const [editContent, setEditContent]   = useState(post.content);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState("");
+  const [loadingCmts, setLoadingCmts] = useState(false);
+  const [likesCount, setLikesCount] = useState(Number(post.likes_count));
+  const [isLiked, setIsLiked] = useState(post.is_liked);
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
 
   /* ── GET COMMENTS — GET /api/comments/:postId
      commentController.getComments returns:
      [{ id, content, created_at, name, role }]
   ── */
   const fetchComments = async () => {
-    if (showComments) { setShowComments(false); return; }
+    if (showComments) {
+      setShowComments(false);
+      return;
+    }
     setLoadingCmts(true);
     try {
       const res = await API.get(`posts/${post.id}/comments`);
@@ -90,9 +115,14 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
   const handleAddComment = async () => {
     if (!commentText.trim()) return;
     try {
-      const res = await API.post(`posts/${post.id}/comments`, { content: commentText });
+      const res = await API.post(`posts/${post.id}/comments`, {
+        content: commentText,
+      });
       // Backend returns the raw comment row, attach current user's name for display
-      setComments(prev => [...prev, { ...res.data, name: currentUser.name, role: currentUser.role }]);
+      setComments((prev) => [
+        ...prev,
+        { ...res.data, name: currentUser.name, role: currentUser.role },
+      ]);
       setCommentText("");
     } catch (err) {
       console.error("Failed to add comment", err);
@@ -107,8 +137,8 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
     try {
       await API.post(`posts/${post.id}/likes`);
       // Optimistic update
-      setIsLiked(prev => !prev);
-      setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+      setIsLiked((prev) => !prev);
+      setLikesCount((prev) => (isLiked ? prev - 1 : prev + 1));
     } catch (err) {
       console.error("Failed to toggle like", err);
     }
@@ -133,7 +163,6 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
 
   return (
     <div className="post-card">
-
       {/* Header */}
       <div className="post-header">
         <Avatar initials={getInitials(post.name)} size={42} />
@@ -145,7 +174,10 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
           {/* post.created_at from DB */}
           <div className="post-meta">
             {new Date(post.created_at).toLocaleString("en-IN", {
-              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
             })}
           </div>
         </div>
@@ -153,20 +185,49 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
         {/* Owner actions */}
         {isOwner && (
           <div style={{ display: "flex", gap: 6 }}>
-            <button className="owner-btn" onClick={() => setEditing(!editing)} title="Edit">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            <button
+              className="owner-btn"
+              onClick={() => setEditing(!editing)}
+              title="Edit"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
             </button>
             {/* DELETE POST — DELETE /api/posts/:id
                 postController.deletePosts
                 returns: { message: "Post deleted successfully." }
             */}
-            <button className="owner-btn owner-btn-red" onClick={() => onDeletePost(post.id)} title="Delete">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+            <button
+              className="owner-btn owner-btn-red"
+              onClick={() => onDeletePost(post.id)}
+              title="Delete"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M9 6V4h6v2" />
               </svg>
             </button>
           </div>
@@ -179,11 +240,15 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
           <textarea
             className="edit-textarea"
             value={editContent}
-            onChange={e => setEditContent(e.target.value)}
+            onChange={(e) => setEditContent(e.target.value)}
           />
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button className="edit-cancel" onClick={() => setEditing(false)}>Cancel</button>
-            <button className="edit-save" onClick={handleEditSave}>Save</button>
+            <button className="edit-cancel" onClick={() => setEditing(false)}>
+              Cancel
+            </button>
+            <button className="edit-save" onClick={handleEditSave}>
+              Save
+            </button>
           </div>
         </div>
       ) : (
@@ -200,26 +265,60 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
 
       {/* Actions */}
       <div className="post-actions">
-        <button className={`action-btn ${isLiked ? "action-liked" : ""}`} onClick={handleLike}>
-          <svg width="17" height="17" viewBox="0 0 24 24"
+        <button
+          className={`action-btn ${isLiked ? "action-liked" : ""}`}
+          onClick={handleLike}
+        >
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
             fill={isLiked ? "currentColor" : "none"}
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
           Like
         </button>
 
         <button className="action-btn" onClick={fetchComments}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
           {loadingCmts ? "Loading..." : "Comment"}
         </button>
 
-        <button className="action-btn" onClick={() => navigator.clipboard.writeText(window.location.href)}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        <button
+          className="action-btn"
+          onClick={() => navigator.clipboard.writeText(window.location.href)}
+        >
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
           </svg>
           Share
         </button>
@@ -228,19 +327,20 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
       {/* Comments — getComments returns: { id, content, created_at, name, role } */}
       {showComments && (
         <div className="comments-section">
-          {comments.length === 0
-            ? <p className="no-comments">No comments yet. Be the first!</p>
-            : comments.map(c => (
-                <div key={c.id} className="comment-item">
-                  <Avatar initials={getInitials(c.name)} size={28} bg="#4b5563" />
-                  <div className="comment-body">
-                    <span className="comment-author">{c.name}</span>
-                    <Badge label={c.role} />
-                    <span className="comment-text">{c.content}</span>
-                  </div>
+          {comments.length === 0 ? (
+            <p className="no-comments">No comments yet. Be the first!</p>
+          ) : (
+            comments.map((c) => (
+              <div key={c.id} className="comment-item">
+                <Avatar initials={getInitials(c.name)} size={28} bg="#4b5563" />
+                <div className="comment-body">
+                  <span className="comment-author">{c.name}</span>
+                  <Badge label={c.role} />
+                  <span className="comment-text">{c.content}</span>
                 </div>
-              ))
-          }
+              </div>
+            ))
+          )}
           {/* Add comment — body: { content } */}
           <div className="comment-input-row">
             <Avatar initials={getInitials(currentUser?.name)} size={28} />
@@ -248,10 +348,12 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
               className="comment-input"
               placeholder="Write a comment..."
               value={commentText}
-              onChange={e => setCommentText(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleAddComment()}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
             />
-            <button className="comment-submit" onClick={handleAddComment}>Post</button>
+            <button className="comment-submit" onClick={handleAddComment}>
+              Post
+            </button>
           </div>
         </div>
       )}
@@ -263,11 +365,17 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
    MAIN FEED
 ───────────────────────────────────────────────── */
 export default function Feed() {
-  const [currentUser, setCurrentUser]   = useState(null);
-  const [posts, setPosts]               = useState([]);
-  const [newPost, setNewPost]           = useState("");
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [newPost, setNewPost] = useState("");
   const [loadingPosts, setLoadingPosts] = useState(true);
-  const [activeNav, setActiveNav]       = useState("Home Feed");
+  const [activeNav, setActiveNav] = useState("Home Feed");
+
+  const [trending, setTrending] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [announcement, setAnnouncement] = useState(null);
 
   /* ── GET PROFILE — GET /api/users/profile
      userController.getProfile
@@ -275,8 +383,8 @@ export default function Feed() {
   ── */
   useEffect(() => {
     API.get("/users/profile")
-      .then(res => setCurrentUser(res.data))
-      .catch(err => console.error("Failed to fetch profile", err));
+      .then((res) => setCurrentUser(res.data))
+      .catch((err) => console.error("Failed to fetch profile", err));
   }, []);
 
   /* ── GET POSTS — GET /api/posts
@@ -286,20 +394,27 @@ export default function Feed() {
   useEffect(() => {
     setLoadingPosts(true);
     API.get("/posts")
-      .then(res => setPosts(res.data))
-      .catch(err => console.error("Failed to fetch posts", err))
+      .then((res) => setPosts(res.data))
+      .catch((err) => console.error("Failed to fetch posts", err))
       .finally(() => setLoadingPosts(false));
   }, []);
-
 
   // Right Sidebar get suggestions, trending, upcoming and announcements
 
   useEffect(() => {
-    API.get("/posts/trending").then(r => setTrending(r.data)).catch(console.error);
-    API.get("/users/suggestions").then(r => setSuggestions(r.data)).catch(console.error);
-    API.get("/events/upcoming").then(r => setEvents(r.data)).catch(console.error);
-    API.get("/announcements/latest").then(r => setAnnouncement(r.data)).catch(console.error);
-}, []);
+    API.get("/posts/trending")
+      .then((r) => setTrending(r.data))
+      .catch(console.error);
+    API.get("/users/suggestions")
+      .then((r) => setSuggestions(r.data))
+      .catch(console.error);
+    API.get("/events/upcoming")
+      .then((r) => setEvents(r.data))
+      .catch(console.error);
+    API.get("/announcements/latest")
+      .then((r) => setAnnouncement(r.data))
+      .catch(console.error);
+  }, []);
 
   /* ── CREATE POST — POST /api/posts
      postController.createPost — body: { content }
@@ -317,7 +432,7 @@ export default function Feed() {
         comments_count: 0,
         is_liked: false,
       };
-      setPosts(prev => [enriched, ...prev]);
+      setPosts((prev) => [enriched, ...prev]);
       setNewPost("");
     } catch (err) {
       console.error("Failed to create post", err);
@@ -332,7 +447,7 @@ export default function Feed() {
     if (!window.confirm("Delete this post?")) return;
     try {
       await API.delete(`/posts/${postId}`);
-      setPosts(prev => prev.filter(p => p.id !== postId));
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
     } catch (err) {
       console.error("Failed to delete post", err);
     }
@@ -341,13 +456,135 @@ export default function Feed() {
   const userInitials = getInitials(currentUser?.name);
 
   const navItems = [
-    { label: "Home Feed",         icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
-    { label: "My Posts",          icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
-    { label: "Saved Posts",       icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> },
-    { label: "Alumni Mentorship", icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-    { label: "Events",            icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-    { label: "Notifications",     icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
-    { label: "Profile Settings",  icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
+    {
+      label: "Home Feed",
+      icon: (
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      ),
+    },
+    {
+      label: "My Posts",
+      icon: (
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+      ),
+    },
+    {
+      label: "Saved Posts",
+      icon: (
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+        </svg>
+      ),
+    },
+    {
+      label: "Alumni Mentorship",
+      icon: (
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      ),
+    },
+    {
+      label: "Events",
+      icon: (
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      ),
+    },
+    {
+      label: "Notifications",
+      icon: (
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      ),
+    },
+    {
+      label: "Profile Settings",
+      icon: (
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -371,6 +608,8 @@ export default function Feed() {
         .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
         .topbar-icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: #f0f2f5; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #4b5563; transition: background 0.15s; }
         .topbar-icon-btn:hover { background: #e5e7eb; }
+        .back-btn { display: flex; align-items: center; gap: 6px; padding: 7px 16px; background: #f0f2f5; border: none; border-radius: 20px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: #4b5563; cursor: pointer; transition: background 0.15s; }
+        .back-btn:hover { background: #e5e7eb; }
 
         /* LAYOUT */
         .feed-layout { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto; width: 100%; padding: 20px 16px; align-items: flex-start; }
@@ -444,13 +683,34 @@ export default function Feed() {
         .widget-card { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; padding: 16px; }
         .widget-title { font-size: 14px; font-weight: 800; color: #1e2a3a; margin-bottom: 14px; display: flex; align-items: center; gap: 7px; }
         .widget-empty { font-size: 12.5px; color: #9ca3af; font-weight: 600; text-align: center; padding: 8px 0; }
+        .trend-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #f0f2f5; }
+        .trend-item:last-child { border-bottom: none; }
+        .trend-tag { font-size: 13px; font-weight: 700; color: #1e2a3a; }
+        .trend-count { font-size: 11.5px; color: #9ca3af; font-weight: 600; }
+
+        .suggestion-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f0f2f5; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-info { flex: 1; }
+        .suggestion-name { font-size: 13px; font-weight: 700; color: #1e2a3a; }
+        .suggestion-sub { margin-top: 2px; }
+        .connect-btn { padding: 5px 12px; border: 1.5px solid #1e3a5f; border-radius: 16px; background: none; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; color: #1e3a5f; cursor: pointer; white-space: nowrap; }
+        .connect-btn:hover { background: #1e3a5f; color: #fff; }
+
+        .event-item { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f0f2f5; }
+        .event-item:last-child { border-bottom: none; }
+        .event-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+        .event-title { font-size: 13px; font-weight: 700; color: #1e2a3a; }
+        .event-date { font-size: 11.5px; color: #9ca3af; font-weight: 600; }
+
+        .announcement-box { background: #f8f9fb; border-radius: 10px; padding: 12px; border-left: 3px solid #3b5bdb; }
+        .announcement-text { font-size: 13px; font-weight: 600; color: #374151; line-height: 1.5; }
+        .announcement-time { font-size: 11px; color: #9ca3af; font-weight: 600; margin-top: 5px; }
 
         @media (max-width: 1024px) { .right-sidebar { display: none; } }
         @media (max-width: 768px) { .left-sidebar { display: none; } .feed-layout { padding: 12px; } }
       `}</style>
 
       <div className="feed-root">
-
         {/* TOPBAR */}
         <header className="topbar">
           <div className="topbar-logo">
@@ -459,32 +719,64 @@ export default function Feed() {
           </div>
           <div className="topbar-search">
             <span className="search-icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </span>
             <input type="text" placeholder="Search posts, people, events..." />
           </div>
           <div className="topbar-right">
             <button className="topbar-icon-btn" aria-label="Notifications">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
             </button>
             <button className="topbar-icon-btn" aria-label="Messages">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </button>
             <button className="topbar-icon-btn" onClick={handleLogout}>
               <Avatar initials={userInitials} size={36} />
             </button>
+             {currentUser?.role === "faculty" && (
+            <button className="back-btn" onClick={() => navigate("/admin")}>
+              ⚙️ Admin Panel
+            </button>
+          )}
           </div>
         </header>
 
         <div className="feed-layout">
-
           {/* LEFT SIDEBAR
               Populated from GET /api/users/profile
               Fields used: name, role, email (shown as dept fallback)
@@ -492,14 +784,18 @@ export default function Feed() {
           <aside className="left-sidebar">
             <div className="profile-card">
               <Avatar initials={userInitials} size={64} />
-              <div className="profile-name">{currentUser?.name || "Loading..."}</div>
+              <div className="profile-name">
+                {currentUser?.name || "Loading..."}
+              </div>
               <Badge label={currentUser?.role} />
               {/* currentUser.email shown below name since dept isn't in your schema yet */}
               <div className="profile-dept">{currentUser?.email}</div>
               <div className="profile-stats">
                 <div className="stat-item">
                   {/* posts count — filtered from loaded posts for now */}
-                  <span className="stat-num">{posts.filter(p => p.name === currentUser?.name).length}</span>
+                  <span className="stat-num">
+                    {posts.filter((p) => p.name === currentUser?.name).length}
+                  </span>
                   <span className="stat-label">Posts</span>
                 </div>
                 <div className="stat-item">
@@ -511,7 +807,7 @@ export default function Feed() {
             </div>
 
             <nav className="nav-card">
-              {navItems.map(item => (
+              {navItems.map((item) => (
                 <button
                   key={item.label}
                   className={`nav-item ${activeNav === item.label ? "active" : ""}`}
@@ -526,7 +822,6 @@ export default function Feed() {
 
           {/* CENTER FEED */}
           <main className="center-feed">
-
             {/* Compose — POST /api/posts  body: { content } */}
             <div className="compose-card">
               <Avatar initials={userInitials} size={40} />
@@ -535,63 +830,172 @@ export default function Feed() {
                 type="text"
                 placeholder="Share something with the community..."
                 value={newPost}
-                onChange={e => setNewPost(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleCreatePost()}
+                onChange={(e) => setNewPost(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreatePost()}
               />
-              <button className="compose-submit" onClick={handleCreatePost}>Post</button>
+              <button className="compose-submit" onClick={handleCreatePost}>
+                Post
+              </button>
             </div>
 
             {/* Posts list — GET /api/posts */}
-            {loadingPosts
-              ? <p className="loading-text">Loading posts...</p>
-              : posts.length === 0
-                ? <p className="loading-text">No posts yet. Be the first to post!</p>
-                : posts.map(post => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      currentUser={currentUser}
-                      onDeletePost={handleDeletePost}
-                    />
-                  ))
-            }
+            {loadingPosts ? (
+              <p className="loading-text">Loading posts...</p>
+            ) : posts.length === 0 ? (
+              <p className="loading-text">
+                No posts yet. Be the first to post!
+              </p>
+            ) : (
+              posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUser={currentUser}
+                  onDeletePost={handleDeletePost}
+                />
+              ))
+            )}
           </main>
 
-          {/* RIGHT SIDEBAR — placeholder widgets until new routes are built */}
           <aside className="right-sidebar">
+            {/* Trending — GET /api/posts/trending */}
             <div className="widget-card">
               <div className="widget-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                  <polyline points="17 6 23 6 23 12" />
                 </svg>
                 Trending
               </div>
-              <p className="widget-empty"></p>
+              {trending.length === 0 ? (
+                <p className="widget-empty">No trending posts yet</p>
+              ) : (
+                trending.map((t) => (
+                  <div key={t.id} className="trend-item">
+                    <span className="trend-tag">{t.name}</span>
+                    <span className="trend-count">{t.likes_count} likes</span>
+                  </div>
+                ))
+              )}
             </div>
 
+            {/* Suggested Connections — GET /api/users/suggestions */}
             <div className="widget-card">
               <div className="widget-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>
-                  <line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <line x1="20" y1="8" x2="20" y2="14" />
+                  <line x1="23" y1="11" x2="17" y2="11" />
                 </svg>
                 Suggested Connections
               </div>
-              <p className="widget-empty"></p>
+              {suggestions.length === 0 ? (
+                <p className="widget-empty">No suggestions yet</p>
+              ) : (
+                suggestions.map((s) => (
+                  <div key={s.id} className="suggestion-item">
+                    <Avatar initials={getInitials(s.name)} size={34} />
+                    <div className="suggestion-info">
+                      <div className="suggestion-name">{s.name}</div>
+                      <div className="suggestion-sub">
+                        <Badge label={s.role} />
+                      </div>
+                    </div>
+                    <button className="connect-btn">Connect</button>
+                  </div>
+                ))
+              )}
             </div>
 
+            {/* Upcoming Events — GET /api/events/upcoming */}
             <div className="widget-card">
               <div className="widget-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-                  <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
                 Upcoming Events
               </div>
-              <p className="widget-empty"></p>
+              {events.length === 0 ? (
+                <p className="widget-empty">No upcoming events</p>
+              ) : (
+                events.map((ev) => (
+                  <div key={ev.id} className="event-item">
+                    <div
+                      className="event-dot"
+                      style={{ background: ev.color || "#3b82f6" }}
+                    />
+                    <div>
+                      <div className="event-title">{ev.title}</div>
+                      <div className="event-date">
+                        {new Date(ev.event_date).toLocaleDateString("en-IN", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          </aside>
 
+            {/* Announcements — GET /api/announcements/latest */}
+            {announcement && (
+              <div className="widget-card">
+                <div className="widget-title">
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0" />
+                  </svg>
+                  Announcements
+                </div>
+                <div className="announcement-box">
+                  <div className="announcement-text">{announcement.text}</div>
+                  <div className="announcement-time">
+                    {new Date(announcement.created_at).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            )}
+          </aside>
         </div>
       </div>
     </>
