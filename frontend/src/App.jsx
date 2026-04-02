@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Feed from "./pages/Feed";
 import Signup from "./pages/Signup";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminPanel from "./pages/Adminpanel";
 
 function Home(){
   return <h2>Welcome to IIPS Community</h2>
@@ -19,6 +20,7 @@ function App(){
           <ProtectedRoute>
             <Feed />
             </ProtectedRoute>} />
+        <Route path="/admin" element={<AdminPanel />} />
       </Routes>
     </BrowserRouter>
   );
