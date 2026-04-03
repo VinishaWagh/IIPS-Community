@@ -4,16 +4,38 @@ const pool = require("../config/db");
 exports.createPost = async(req, res)=>{
     try{
         const {content} = req.body;
-        if(!content){
-            res.status(400).json({message: "Content is required!"});
+        
+        // Content can be empty if files are attached, but at least one is required
+        if(!content?.trim() && (!req.files || req.files.length === 0)){
+            return res.status(400).json({message: "Content or attachments are required!"});
         }   
 
+        // Insert the post
         const newPost = await pool.query(
             "INSERT INTO posts (user_id, content) VALUES ($1, $2) RETURNING *",
-            [req.user.id, content]
+            [req.user.id, content || ""]
         );
 
-        res.status(201).json(newPost.rows[0]);
+        const postId = newPost.rows[0].id;
+        let attachments = [];
+
+        // Save file attachments if any
+        if(req.files && req.files.length > 0){
+            for(const file of req.files){
+                // Save file metadata to attachments table
+                const filePath = `/uploads/${file.filename}`;
+                const attachmentResult = await pool.query(
+                    "INSERT INTO attachments (post_id, filename, original_name, path, mimetype, size) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+                    [postId, file.filename, file.originalname, filePath, file.mimetype, file.size]
+                );
+                attachments.push(attachmentResult.rows[0]);
+            }
+        }
+
+        res.status(201).json({
+            ...newPost.rows[0],
+            attachments: attachments
+        });
     } catch(error){
         res.status(500).json({error: error.message});
     }
@@ -38,7 +60,32 @@ exports.getPosts = async (req, res) => {
        ORDER BY posts.created_at DESC`,
       [userId]
     );
-    res.json(posts.rows);
+    
+    // Fetch all attachments for these posts in one query
+    const postIds = posts.rows.map(p => p.id);
+    let attachmentsByPostId = {};
+    
+    if(postIds.length > 0){
+      const attachments = await pool.query(
+        "SELECT id, post_id, filename, original_name, path, mimetype, size FROM attachments WHERE post_id = ANY($1) ORDER BY post_id",
+        [postIds]
+      );
+      
+      attachments.rows.forEach(att => {
+        if(!attachmentsByPostId[att.post_id]){
+          attachmentsByPostId[att.post_id] = [];
+        }
+        attachmentsByPostId[att.post_id].push(att);
+      });
+    }
+    
+    // Add attachments to posts
+    const enrichedPosts = posts.rows.map(post => ({
+      ...post,
+      attachments: attachmentsByPostId[post.id] || [],
+    }));
+    
+    res.json(enrichedPosts);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -151,7 +198,32 @@ exports.getMyPosts = async (req, res) => {
        ORDER BY posts.created_at DESC`,
       [userId]
     );
-    res.json(posts.rows);
+    
+    // Fetch all attachments for these posts in one query
+    const postIds = posts.rows.map(p => p.id);
+    let attachmentsByPostId = {};
+    
+    if(postIds.length > 0){
+      const attachments = await pool.query(
+        "SELECT id, post_id, filename, original_name, path, mimetype, size FROM attachments WHERE post_id = ANY($1) ORDER BY post_id",
+        [postIds]
+      );
+      
+      attachments.rows.forEach(att => {
+        if(!attachmentsByPostId[att.post_id]){
+          attachmentsByPostId[att.post_id] = [];
+        }
+        attachmentsByPostId[att.post_id].push(att);
+      });
+    }
+    
+    // Add attachments to posts
+    const enrichedPosts = posts.rows.map(post => ({
+      ...post,
+      attachments: attachmentsByPostId[post.id] || [],
+    }));
+    
+    res.json(enrichedPosts);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -203,7 +275,32 @@ exports.getSavedPosts = async (req, res) => {
        ORDER BY posts.created_at DESC`,
       [userId]
     );
-    res.json(posts.rows);
+    
+    // Fetch all attachments for these posts in one query
+    const postIds = posts.rows.map(p => p.id);
+    let attachmentsByPostId = {};
+    
+    if(postIds.length > 0){
+      const attachments = await pool.query(
+        "SELECT id, post_id, filename, original_name, path, mimetype, size FROM attachments WHERE post_id = ANY($1) ORDER BY post_id",
+        [postIds]
+      );
+      
+      attachments.rows.forEach(att => {
+        if(!attachmentsByPostId[att.post_id]){
+          attachmentsByPostId[att.post_id] = [];
+        }
+        attachmentsByPostId[att.post_id].push(att);
+      });
+    }
+    
+    // Add attachments to posts
+    const enrichedPosts = posts.rows.map(post => ({
+      ...post,
+      attachments: attachmentsByPostId[post.id] || [],
+    }));
+    
+    res.json(enrichedPosts);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

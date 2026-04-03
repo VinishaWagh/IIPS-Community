@@ -78,3 +78,6 @@ app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 // Connections
 app.use("/api/connections", require("./routes/connectionRoutes"));
+
+//Attachments
+app.use("/uploads", express.static("uploads"));

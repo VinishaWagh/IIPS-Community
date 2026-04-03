@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 import logo from "../assets/IIPS_Connect_logo.png";
@@ -274,6 +274,89 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
         <p className="post-content">{post.content}</p>
       )}
 
+      {/* Attachments */}
+      {post.attachments && post.attachments.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            marginBottom: 12,
+          }}
+        >
+          {post.attachments.map((file, i) => {
+            const url = `http://localhost:5000${file.path}`;
+            if (file.mimetype?.startsWith("image/")) {
+              return (
+                <img
+                  key={i}
+                  src={url}
+                  alt={file.name}
+                  style={{
+                    maxWidth: "100%",
+                    borderRadius: 10,
+                    maxHeight: 400,
+                    objectFit: "cover",
+                  }}
+                />
+              );
+            }
+            if (file.mimetype?.startsWith("video/")) {
+              return (
+                <video
+                  key={i}
+                  controls
+                  style={{ maxWidth: "100%", borderRadius: 10, maxHeight: 400 }}
+                >
+                  <source src={url} type={file.mimetype} />
+                </video>
+              );
+            }
+            // Documents / other files
+            return (
+              <a
+                key={i}
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  background: "#f8f9fb",
+                  border: "1.5px solid #e5e7eb",
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  color: "#1e2a3a",
+                }}
+              >
+                <span style={{ fontSize: 22 }}>
+                  {file.mimetype?.includes("pdf")
+                    ? "📄"
+                    : file.mimetype?.includes("word")
+                      ? "📝"
+                      : file.mimetype?.includes("sheet") ||
+                          file.mimetype?.includes("excel")
+                        ? "📊"
+                        : "📎"}
+                </span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>
+                    {file.name}
+                  </div>
+                  <div
+                    style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600 }}
+                  >
+                    {(file.size / 1024).toFixed(0)} KB · Click to download
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )}
+
       {/* Stats — from likes_count, comments_count */}
       <div className="post-stats">
         <span>{likesCount} likes</span>
@@ -414,6 +497,11 @@ export default function Feed() {
   const [events, setEvents] = useState([]);
   const [announcement, setAnnouncement] = useState(null);
 
+  const [attachments, setAttachments] = useState([]);
+  const fileInputRef = useRef(null);
+  const [activeAttachType, setActiveAttachType] = useState(null);
+  const [isPosting, setIsPosting] = useState(false);
+
   /* ── GET POSTS — GET /api/posts
      postController.getPosts
      returns: [{ id, content, created_at, name, likes_count, comments_count, is_liked }]
@@ -422,20 +510,70 @@ export default function Feed() {
     setLoadingPosts(true);
     Promise.all([API.get("/users/profile"), API.get("/posts")])
       .then(([profileRes, postsRes]) => {
-        console.log(
-          "ALL POSTS:",
-          postsRes.data.map((p) => ({
-            id: p.id,
-            user_id: p.user_id,
-            name: p.name,
-          })),
-        );
         setCurrentUser(profileRes.data);
         setPosts(postsRes.data);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoadingPosts(false));
   }, []);
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    const newAttachments = files.map((f) => ({
+      file: f,
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : null,
+    }));
+    setAttachments((prev) => [...prev, ...newAttachments]);
+    e.target.value = ""; // reset input
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+    /* ── CREATE POST — POST /api/posts
+     postController.createPost — body: { content }
+     returns: { id, user_id, content, created_at }
+  ── */
+  const handleCreatePost = async () => {
+    if (!newPost.trim() && attachments.length === 0) {
+      alert("Please write something or attach a file");
+      return;
+    }
+    
+    if (isPosting) return; // Prevent duplicate submissions
+    setIsPosting(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("content", newPost);
+      attachments.forEach((a) => formData.append("files", a.file));
+
+      const res = await API.post("/posts", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const enriched = {
+        ...res.data,
+        name: currentUser.name,
+        likes_count: 0,
+        comments_count: 0,
+        is_liked: false,
+        is_saved: false,
+        attachments: res.data.attachments || [],
+      };
+      setPosts((prev) => [enriched, ...prev]);
+      setNewPost("");
+      setAttachments([]);
+    } catch (err) {
+      console.error("Failed to create post", err);
+      alert("Failed to create post: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsPosting(false);
+    }
+  };
 
   // Right Sidebar get suggestions, trending, upcoming and announcements
 
@@ -453,30 +591,6 @@ export default function Feed() {
       .then((r) => setAnnouncement(r.data))
       .catch(console.error);
   }, []);
-
-  /* ── CREATE POST — POST /api/posts
-     postController.createPost — body: { content }
-     returns: { id, user_id, content, created_at }
-  ── */
-  const handleCreatePost = async () => {
-    if (!newPost.trim()) return;
-    try {
-      const res = await API.post("/posts", { content: newPost });
-      // Backend returns the bare row without name/counts — attach from currentUser
-      const enriched = {
-        ...res.data,
-        name: currentUser.name,
-        likes_count: 0,
-        comments_count: 0,
-        is_liked: false,
-        is_saved: false,
-      };
-      setPosts((prev) => [enriched, ...prev]);
-      setNewPost("");
-    } catch (err) {
-      console.error("Failed to create post", err);
-    }
-  };
 
   /* ── DELETE POST — DELETE /api/posts/:id
      postController.deletePosts
@@ -655,8 +769,17 @@ export default function Feed() {
         .compose-input:focus { border-color: #7b8fcf; background: #fff; }
         .compose-input::placeholder { color: #9ca3af; }
         .compose-submit { padding: 9px 20px; background: #1e3a5f; color: #fff; border: none; border-radius: 20px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
-        .compose-submit:hover { background: #2d4f80; }
+        .compose-submit:hover:not(:disabled) { background: #2d4f80; }
+        .compose-submit:disabled { opacity: 0.6; cursor: not-allowed; }
         .loading-text { text-align: center; color: #9ca3af; font-weight: 600; padding: 40px 0; }
+        .attach-btn { display: flex; align-items: center; gap: 5px;
+        padding: 6px 12px; border: 1.5px solid #e5e7eb;
+        border-radius: 20px; background: none;
+        font-family: 'Nunito', sans-serif; font-size: 12px;
+        font-weight: 700; color: #6b7280; cursor: pointer;
+        transition: all 0.15s; white-space: nowrap;
+      }
+      .attach-btn:hover { background: #eef1fb; border-color: #7b8fcf; color: #1e3a5f; }
 
         /* POST CARD */
         .post-card { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; padding: 20px; }
@@ -863,17 +986,179 @@ export default function Feed() {
             {/* Compose — POST /api/posts  body: { content } */}
             <div className="compose-card">
               <Avatar initials={userInitials} size={40} />
-              <input
-                className="compose-input"
-                type="text"
-                placeholder="Share something with the community..."
-                value={newPost}
-                onChange={(e) => setNewPost(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCreatePost()}
-              />
-              <button className="compose-submit" onClick={handleCreatePost}>
-                Post
-              </button>
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
+              >
+                <input
+                  className="compose-input"
+                  type="text"
+                  placeholder="Share something with the community..."
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreatePost()}
+                />
+
+                {/* Attachment previews */}
+                {attachments.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {attachments.map((a, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: "relative",
+                          border: "1.5px solid #e5e7eb",
+                          borderRadius: 10,
+                          padding: "6px 10px",
+                          background: "#f8f9fb",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          maxWidth: 200,
+                        }}
+                      >
+                        {a.preview ? (
+                          <img
+                            src={a.preview}
+                            alt={a.name}
+                            style={{
+                              width: 40,
+                              height: 40,
+                              objectFit: "cover",
+                              borderRadius: 6,
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              background: "#eef1fb",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 18,
+                            }}
+                          >
+                            {a.type.startsWith("video/")
+                              ? "🎬"
+                              : a.type === "application/pdf"
+                                ? "📄"
+                                : a.type.includes("word")
+                                  ? "📝"
+                                  : a.type.includes("sheet") ||
+                                      a.type.includes("excel")
+                                    ? "📊"
+                                    : "📎"}
+                          </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "#1e2a3a",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {a.name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: "#9ca3af",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {(a.size / 1024).toFixed(0)} KB
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeAttachment(i)}
+                          style={{
+                            position: "absolute",
+                            top: -6,
+                            right: -6,
+                            width: 18,
+                            height: 18,
+                            borderRadius: "50%",
+                            background: "#e11d48",
+                            border: "none",
+                            color: "#fff",
+                            fontSize: 10,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 800,
+                            lineHeight: 1,
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Action bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept={
+                      activeAttachType === "image"
+                        ? "image/*"
+                        : activeAttachType === "video"
+                          ? "video/*"
+                          : activeAttachType === "document"
+                            ? ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                            : "*/*"
+                    }
+                    style={{ display: "none" }}
+                    onChange={handleFileSelect}
+                  />
+
+                  {/* Attach buttons */}
+                  {[
+                    { type: "image", emoji: "🖼️", label: "Photo" },
+                    { type: "video", emoji: "🎬", label: "Video" },
+                    { type: "document", emoji: "📄", label: "Document" },
+                    { type: "any", emoji: "📎", label: "File" },
+                  ].map(({ type, emoji, label }) => (
+                    <button
+                      key={type}
+                      className="attach-btn"
+                      onClick={() => {
+                        setActiveAttachType(type);
+                        setTimeout(() => fileInputRef.current?.click(), 0);
+                      }}
+                      title={`Attach ${label}`}
+                    >
+                      <span>{emoji}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+
+                  <button
+                    className="compose-submit"
+                    style={{ marginLeft: "auto" }}
+                    onClick={handleCreatePost}
+                    disabled={isPosting}
+                  >
+                    {isPosting ? "Posting..." : "Post"}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Posts list — GET /api/posts */}
