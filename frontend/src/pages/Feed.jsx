@@ -87,7 +87,7 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
   const [isLiked, setIsLiked] = useState(post.is_liked);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(Boolean(post.is_saved));
 
   /* ── GET COMMENTS — GET /api/comments/:postId
      commentController.getComments returns:
@@ -164,15 +164,21 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
   // Save Posts
 
   const handleSave = async () => {
+    const newState = !isSaved;
+    setIsSaved(newState);
     try {
       await API.post(`/posts/${post.id}/save`);
-      setIsSaved((prev) => !prev);
     } catch (err) {
+      setIsSaved(!newState); // revert on failure
       console.error(err);
     }
   };
 
-  const isOwner = currentUser?.name === post.name; // name match since we don't expose user_id in getPosts
+  const isOwner = Boolean(
+    currentUser &&
+    post.user_id &&
+    Number(currentUser.id) === Number(post.user_id), // ← coerce both to number
+  );
 
   return (
     <div className="post-card">
@@ -408,25 +414,26 @@ export default function Feed() {
   const [events, setEvents] = useState([]);
   const [announcement, setAnnouncement] = useState(null);
 
-  /* ── GET PROFILE — GET /api/users/profile
-     userController.getProfile
-     returns: { id, name, email, role, created_at }
-  ── */
-  useEffect(() => {
-    API.get("/users/profile")
-      .then((res) => setCurrentUser(res.data))
-      .catch((err) => console.error("Failed to fetch profile", err));
-  }, []);
-
   /* ── GET POSTS — GET /api/posts
      postController.getPosts
      returns: [{ id, content, created_at, name, likes_count, comments_count, is_liked }]
   ── */
   useEffect(() => {
     setLoadingPosts(true);
-    API.get("/posts")
-      .then((res) => setPosts(res.data))
-      .catch((err) => console.error("Failed to fetch posts", err))
+    Promise.all([API.get("/users/profile"), API.get("/posts")])
+      .then(([profileRes, postsRes]) => {
+        console.log(
+          "ALL POSTS:",
+          postsRes.data.map((p) => ({
+            id: p.id,
+            user_id: p.user_id,
+            name: p.name,
+          })),
+        );
+        setCurrentUser(profileRes.data);
+        setPosts(postsRes.data);
+      })
+      .catch((err) => console.error(err))
       .finally(() => setLoadingPosts(false));
   }, []);
 
@@ -462,6 +469,7 @@ export default function Feed() {
         likes_count: 0,
         comments_count: 0,
         is_liked: false,
+        is_saved: false,
       };
       setPosts((prev) => [enriched, ...prev]);
       setNewPost("");
@@ -869,7 +877,8 @@ export default function Feed() {
             </div>
 
             {/* Posts list — GET /api/posts */}
-            {loadingPosts ? (
+            {/* Posts list */}
+            {loadingPosts || !currentUser ? (
               <p className="loading-text">Loading posts...</p>
             ) : posts.length === 0 ? (
               <p className="loading-text">
@@ -878,7 +887,7 @@ export default function Feed() {
             ) : (
               posts.map((post) => (
                 <PostCard
-                  key={post.id}
+                  key={`${post.id}-${currentUser?.id}`}
                   post={post}
                   currentUser={currentUser}
                   onDeletePost={handleDeletePost}
@@ -951,9 +960,9 @@ export default function Feed() {
                       </div>
                     </div>
                     <ConnectButton
-                        targetUserId={s.id}
-                        currentUserId={currentUser?.id}
-                      />
+                      targetUserId={s.id}
+                      currentUserId={currentUser?.id}
+                    />
                   </div>
                 ))
               )}

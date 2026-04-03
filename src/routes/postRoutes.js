@@ -11,5 +11,5 @@ router.get("/trending", authentication, getTrending);
 router.get("/my", authentication, getMyPosts);
 router.get("/saved", authentication, getSavedPosts);
 router.post("/:postId/save", authentication, toggleSavePost);
-module.exports = router;
 router.get("/search", authentication, searchAll);
+module.exports = router;
