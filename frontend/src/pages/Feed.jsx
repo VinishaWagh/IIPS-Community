@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 import logo from "../assets/IIPS_Connect_logo.png";
+import ConnectButton from "../components/Connectbutton";
 
 /* ─────────────────────────────────────────────────
    AVATAR & BADGE
@@ -86,6 +87,7 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
   const [isLiked, setIsLiked] = useState(post.is_liked);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
+  const [isSaved, setIsSaved] = useState(false);
 
   /* ── GET COMMENTS — GET /api/comments/:postId
      commentController.getComments returns:
@@ -156,6 +158,17 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
       setEditing(false);
     } catch (err) {
       console.error("Failed to update post", err);
+    }
+  };
+
+  // Save Posts
+
+  const handleSave = async () => {
+    try {
+      await API.post(`/posts/${post.id}/save`);
+      setIsSaved((prev) => !prev);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -321,6 +334,24 @@ function PostCard({ post, currentUser, onLikeToggle, onDeletePost }) {
             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
           </svg>
           Share
+        </button>
+        <button
+          className={`action-btn ${isSaved ? "action-saved" : ""}`}
+          onClick={handleSave}
+          style={{ flex: 0, padding: "7px 10px" }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill={isSaved ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
         </button>
       </div>
 
@@ -530,26 +561,6 @@ export default function Feed() {
       ),
     },
     {
-      label: "Events",
-      icon: (
-        <svg
-          width="17"
-          height="17"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      ),
-    },
-    {
       label: "Notifications",
       icon: (
         <svg
@@ -652,6 +663,7 @@ export default function Feed() {
         .action-btn:hover { background: #f0f2f5; color: #1e2a3a; }
         .action-liked { color: #e11d48; }
         .action-liked:hover { background: #fff1f2; color: #e11d48; }
+        .action-saved { color: #1e3a5f; }
 
         /* OWNER BUTTONS */
         .owner-btn { background: none; border: 1px solid #e5e7eb; border-radius: 6px; padding: 5px; cursor: pointer; color: #6b7280; display: flex; align-items: center; transition: background 0.15s, color 0.15s; }
@@ -751,6 +763,13 @@ export default function Feed() {
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
             </button>
+            <button
+              className="topbar-icon-btn"
+              onClick={() => navigate("/requests")}
+              title="Connection Requests"
+            >
+              🤝
+            </button>
             <button className="topbar-icon-btn" aria-label="Messages">
               <svg
                 width="18"
@@ -768,11 +787,11 @@ export default function Feed() {
             <button className="topbar-icon-btn" onClick={handleLogout}>
               <Avatar initials={userInitials} size={36} />
             </button>
-             {currentUser?.role === "faculty" && (
-            <button className="back-btn" onClick={() => navigate("/admin")}>
-              ⚙️ Admin Panel
-            </button>
-          )}
+            {currentUser?.role === "faculty" && (
+              <button className="back-btn" onClick={() => navigate("/admin")}>
+                ⚙️ Admin Panel
+              </button>
+            )}
           </div>
         </header>
 
@@ -811,7 +830,18 @@ export default function Feed() {
                 <button
                   key={item.label}
                   className={`nav-item ${activeNav === item.label ? "active" : ""}`}
-                  onClick={() => setActiveNav(item.label)}
+                  onClick={() => {
+                    if (item.label === "My Posts") navigate("/my-posts");
+                    else if (item.label === "Saved Posts")
+                      navigate("/saved-posts");
+                    else if (item.label === "Alumni Mentorship")
+                      navigate("/mentorship");
+                    else if (item.label === "Notifications")
+                      navigate("/notifications");
+                    else if (item.label === "Profile Settings")
+                      navigate("/profile");
+                    else setActiveNav(item.label);
+                  }}
                 >
                   {item.icon}
                   {item.label}
@@ -920,7 +950,10 @@ export default function Feed() {
                         <Badge label={s.role} />
                       </div>
                     </div>
-                    <button className="connect-btn">Connect</button>
+                    <ConnectButton
+                        targetUserId={s.id}
+                        currentUserId={currentUser?.id}
+                      />
                   </div>
                 ))
               )}

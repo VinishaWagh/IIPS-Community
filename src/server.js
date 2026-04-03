@@ -72,3 +72,9 @@ app.use("/api/events", require("./routes/eventRoutes"));
 
 // Announcements
 app.use("/api/announcements", require("./routes/announcementRoutes"));
+
+// Notifications
+app.use("/api/notifications", require("./routes/notificationRoutes"));
+
+// Connections
+app.use("/api/connections", require("./routes/connectionRoutes"));

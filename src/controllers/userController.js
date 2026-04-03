@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const bcrypt = require("bcrypt");
 
 // getting user profile
 exports.getProfile = async(req, res)=>{
@@ -29,4 +30,48 @@ exports.getSuggestions = async (req, res) =>{
     } catch(error){
         res.status(500).json({error: error.message});
     }
+};
+
+// Update Profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const updated = await pool.query(
+      `UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING id, name, email, role, created_at`,
+      [name, email, req.user.id]
+    );
+    res.json(updated.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// Update Password
+exports.updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await pool.query("SELECT * FROM users WHERE id = $1", [req.user.id]);
+    const valid = await bcrypt.compare(currentPassword, user.rows[0].password);
+    if (!valid) return res.status(400).json({ message: "Current password is incorrect." });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await pool.query("UPDATE users SET password = $1 WHERE id = $2", [hashed, req.user.id]);
+    res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// get Alumni's
+exports.getAlumni = async (req, res) => {
+  try {
+    const alumni = await pool.query(
+      `SELECT id, name, email, role, created_at FROM users WHERE role = 'alumni' AND id != $1`,
+      [req.user.id]
+    );
+    res.json(alumni.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };

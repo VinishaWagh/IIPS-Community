@@ -24,7 +24,7 @@ exports.getPosts = async(req, res)=>{
     try{
         const userId = req.user.id;
         const posts = await pool.query(
-        `SELECT posts.id, posts.content, posts.created_at, users.name,
+        `SELECT posts.id, posts.user_id, posts.content, posts.created_at, users.name,
         COUNT (DISTINCT likes.id) AS likes_count,
         COUNT (DISTINCT comments.id) AS comments_count,
         BOOL_OR(likes.user_id = $1) AS is_liked
@@ -128,6 +128,129 @@ exports.getTrending = async (req, res) => {
        LIMIT 5`
     );
     res.json(trending.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// get My Posts
+exports.getMyPosts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const posts = await pool.query(
+      `SELECT posts.id, posts.content, posts.created_at, users.name,
+       COUNT(DISTINCT likes.id) AS likes_count,
+       COUNT(DISTINCT comments.id) AS comments_count,
+       BOOL_OR(likes.user_id = $1) AS is_liked
+       FROM posts
+       JOIN users ON posts.user_id = users.id
+       LEFT JOIN likes ON posts.id = likes.post_id
+       LEFT JOIN comments ON posts.id = comments.post_id
+       WHERE posts.user_id = $1
+       GROUP BY posts.id, users.name
+       ORDER BY posts.created_at DESC`,
+      [userId]
+    );
+    res.json(posts.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// get toggle Saved Posts
+exports.toggleSavePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.id;
+    const existing = await pool.query(
+      "SELECT * FROM saved_posts WHERE user_id = $1 AND post_id = $2",
+      [userId, postId]
+    );
+    if (existing.rows.length > 0) {
+      await pool.query(
+        "DELETE FROM saved_posts WHERE user_id = $1 AND post_id = $2",
+        [userId, postId]
+      );
+      return res.json({ message: "Post unsaved." });
+    }
+    await pool.query(
+      "INSERT INTO saved_posts (user_id, post_id) VALUES ($1, $2)",
+      [userId, postId]
+    );
+    res.json({ message: "Post saved." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// get Saved Posts
+exports.getSavedPosts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const posts = await pool.query(
+      `SELECT posts.id, posts.content, posts.created_at, users.name,
+       COUNT(DISTINCT likes.id) AS likes_count,
+       COUNT(DISTINCT comments.id) AS comments_count,
+       BOOL_OR(likes.user_id = $1) AS is_liked
+       FROM saved_posts
+       JOIN posts ON saved_posts.post_id = posts.id
+       JOIN users ON posts.user_id = users.id
+       LEFT JOIN likes ON posts.id = likes.post_id
+       LEFT JOIN comments ON posts.id = comments.post_id
+       WHERE saved_posts.user_id = $1
+       GROUP BY posts.id, users.name
+       ORDER BY saved_posts.created_at DESC`,
+      [userId]
+    );
+    res.json(posts.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// search for posts, users and events
+exports.searchAll = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json({ posts: [], users: [], events: [] });
+
+    const search = `%${q}%`;
+
+    const posts = await pool.query(
+      `SELECT posts.id, posts.content, posts.created_at, users.name,
+       COUNT(DISTINCT likes.id) AS likes_count,
+       COUNT(DISTINCT comments.id) AS comments_count
+       FROM posts
+       JOIN users ON posts.user_id = users.id
+       LEFT JOIN likes ON posts.id = likes.post_id
+       LEFT JOIN comments ON posts.id = comments.post_id
+       WHERE posts.content ILIKE $1
+       GROUP BY posts.id, users.name
+       ORDER BY posts.created_at DESC
+       LIMIT 10`,
+      [search]
+    );
+
+    const users = await pool.query(
+      `SELECT id, name, email, role FROM users
+       WHERE name ILIKE $1 OR email ILIKE $1
+       LIMIT 8`,
+      [search]
+    );
+
+    const events = await pool.query(
+      `SELECT * FROM events
+       WHERE title ILIKE $1
+       ORDER BY event_date ASC
+       LIMIT 5`,
+      [search]
+    );
+
+    res.json({
+      posts: posts.rows,
+      users: users.rows,
+      events: events.rows,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
