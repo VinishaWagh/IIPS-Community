@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 import logo from "../assets/IIPS_Connect_logo.png";
@@ -17,7 +17,12 @@ const buildAttachmentUrl = (attachmentPath) => {
   if (attachmentPath.startsWith("http://") || attachmentPath.startsWith("https://")) {
     try {
       const parsed = new URL(attachmentPath);
-      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+      const apiParsed = new URL(apiBase);
+      if (
+        parsed.hostname === "localhost" ||
+        parsed.hostname === "127.0.0.1" ||
+        parsed.hostname === apiParsed.hostname
+      ) {
         return new URL(parsed.pathname, apiBase).toString();
       }
       return attachmentPath;
